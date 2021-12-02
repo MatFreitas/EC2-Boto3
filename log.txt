@@ -1,0 +1,28 @@
+2021-12-02 11:45:26,079 - INFO - Criando client EC2 em cada região
+2021-12-02 11:45:26,247 - INFO - Criando os keypairs em cada região
+2021-12-02 11:45:29,572 - INFO - Deletando AutoScaling Group se já existe
+2021-12-02 11:45:31,022 - INFO - Terminando instâncias criadas pelo Autoscaling
+2021-12-02 11:46:34,408 - INFO - Deletando instância de NV se existir
+2021-12-02 11:46:34,658 - INFO - Deletando listener se já existe
+2021-12-02 11:46:36,109 - INFO - Deletando Loadbalancer se já existir
+2021-12-02 11:46:36,545 - INFO - Deletando Target Group se já existe
+2021-12-02 11:46:36,927 - INFO - Deletando Launch Configuration se não existe
+2021-12-02 11:46:38,061 - INFO - Aguardando tudo ser apagado
+2021-12-02 11:47:18,062 - INFO - Criando os security groups em cada região
+2021-12-02 11:47:20,771 - INFO - Configurando regras de entrada para cada security group
+2021-12-02 11:47:21,592 - INFO - Criando instância Postgres de Ohio
+2021-12-02 11:47:24,367 - INFO - Pegando IP Público da instância Postgres de Ohio
+2021-12-02 11:47:55,276 - INFO - Criando instância Django de North Virginia
+2021-12-02 11:47:58,456 - INFO - Esperando a instância Django de NV rodar
+2021-12-02 11:48:29,882 - INFO - Criando imagem da instância Django de NV
+2021-12-02 11:53:05,382 - INFO - Deletando instância Django de NV
+2021-12-02 11:53:05,681 - INFO - Criando o loadbalancer
+2021-12-02 11:53:08,011 - INFO - Criando o target group
+2021-12-02 11:53:08,329 - INFO - Criando listener no loadbalancer
+2021-12-02 11:53:08,543 - INFO - Formatando string do Resource
+2021-12-02 11:53:08,544 - INFO - arn_loadbalancer: app/Loadbalancer-Mat-NV/b3abef0e6561a575
+2021-12-02 11:53:08,545 - INFO - arn_targetgroup: targetgroup/TargetGrp-Mat-NV/69089d05d2c2cc27
+2021-12-02 11:53:08,545 - INFO - Resource Label String: app/Loadbalancer-Mat-NV/b3abef0e6561a575/targetgroup/TargetGrp-Mat-NV/69089d05d2c2cc27
+2021-12-02 11:53:08,547 - INFO - Criando Launch Configuration
+2021-12-02 11:53:09,638 - INFO - Criando Autoscaling Group
+2021-12-02 11:53:10,183 - INFO - Criando Scaling Policy

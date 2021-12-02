@@ -2,9 +2,11 @@ import boto3
 import os
 from dotenv import load_dotenv
 import time
+import logging
 
 load_dotenv()
 
+logging.basicConfig(filename='log.txt', filemode='w',format='%(asctime)s - %(levelname)s - %(message)s',level=logging.INFO)
 
 #-------------------------------------------------------------------------------------------------------
 # Credenciais 
@@ -14,6 +16,7 @@ secret_access_key = os.getenv('SECRET_ACESS_KEY')
 #-------------------------------------------------------------------------------------------------------
 # Criando client EC2 em cada região
 print('Criando client EC2 em cada região\n')
+logging.info("Criando client EC2 em cada região")
 
 ec2_client_north_virginia = boto3.client(
     "ec2",
@@ -32,6 +35,7 @@ ec2_client_ohio = boto3.client(
 #-------------------------------------------------------------------------------------------------------
 # Criação dos keypairs
 print('Criando os keypairs em cada região\n')
+logging.info("Criando os keypairs em cada região")
 
 # --------Ohio------------
 kpName_ohio = 'matheus-key-pair'
@@ -54,6 +58,7 @@ try:
         os.remove(keyFileName_ohio)
 except:
     print("Error while deleting file ", os.getcwd())
+    logging.error("Error while deleting file")
 
 # write private key to file with 777 permissions
 with os.fdopen(os.open(keyFileName_ohio, os.O_WRONLY | os.O_CREAT, 0o777), "w+") as handle:
@@ -82,6 +87,7 @@ try:
         os.remove(keyFileName_nv)
 except:
     print("Error while deleting file ", os.getcwd())
+    logging.error("Error while deleting file")
 
 # write private key to file with 777 permissions
 with os.fdopen(os.open(keyFileName_nv, os.O_WRONLY | os.O_CREAT, 0o777), "w+") as handle:
@@ -90,6 +96,7 @@ with os.fdopen(os.open(keyFileName_nv, os.O_WRONLY | os.O_CREAT, 0o777), "w+") a
 #-------------------------------------------------------------------------------------------------------
 # Deletando AutoScaling Group se já existe
 print('Deletando AutoScaling Group se já existe\n')
+logging.info("Deletando AutoScaling Group se já existe")
 
 autosgName = 'AutoSG-Mat-NV'
 
@@ -117,6 +124,7 @@ try:
         ec2_client_north_virginia.terminate_instances(InstanceIds=[id_inst])
 
         print('Terminando instâncias criadas pelo Autoscaling\n')
+        logging.info("Terminando instâncias criadas pelo Autoscaling")
 
         waiter_AS_Instance.wait(
             Filters=[
@@ -137,6 +145,7 @@ try:
 
 except:
     print('Autoscaling não existe\n')
+    logging.info("Autoscaling não existe")
     
 #-------------------------------------------------------------------------------------------------------
 # Deletando instâncias caso já existam antes de criar security group
@@ -181,6 +190,7 @@ if responseInst_ohio['Reservations']:
 
 # ----North Virginia-----
 print('Deletando instância de NV se existir\n')
+logging.info("Deletando instância de NV se existir")
 waiter_nv = ec2_client_north_virginia.get_waiter('instance_terminated')
 
 responseInst_nv = ec2_client_north_virginia.describe_instances(
@@ -220,6 +230,7 @@ if responseInst_nv['Reservations']:
 #-------------------------------------------------------------------------------------------------------
 # Deletando listener se já existe
 print('Deletando listener se já existe\n')
+logging.info("Deletando listener se já existe")
 
 ec2_client_north_virginia_LB = boto3.client(service_name="elbv2",
                                             region_name="us-east-1",
@@ -253,10 +264,12 @@ try:
             )
 except:
     print('Load Balancer não existe\n')
+    logging.info("Load Balancer não existe")
 
 #-------------------------------------------------------------------------------------------------------
 # Deletando loadbalancer se já existir
 print('Deletando Loadbalancer se já existir\n')
+logging.info("Deletando Loadbalancer se já existir")
 
 try:
     LB_response = ec2_client_north_virginia_LB.describe_load_balancers(
@@ -273,10 +286,12 @@ try:
 
 except:
     print('Loadbalancer não existe\n')
+    logging.info("Loadbalancer não existe")
 
 #-------------------------------------------------------------------------------------------------------
 # Deletando Target Group se já existe
 print('Deletando Target Group se já existe\n')
+logging.info("Deletando Target Group se já existe")
 
 target_grp_name = 'TargetGrp-Mat-NV'
 
@@ -293,10 +308,12 @@ try:
     
 except:
     print('Target Group não existe ainda\n')
+    logging.info("Target Group não existe ainda")
 
 #-------------------------------------------------------------------------------------------------------
 # Deletando Launch Configuration se não existe (depende do AUTOSCALING)
 print('Deletando Launch Configuration se não existe\n')
+logging.info("Deletando Launch Configuration se não existe")
 
 lcName = 'LC-Mat-NV' 
 
@@ -311,11 +328,14 @@ if response['LaunchConfigurations']:
         LaunchConfigurationName=lcName,
     )
 
+print('Aguardando tudo ser apagado\n')
+logging.info("Aguardando tudo ser apagado")
 time.sleep(40)
 
 #-------------------------------------------------------------------------------------------------------
 # Criação dos security groups
 print('Criando os security groups em cada região\n')
+logging.info("Criando os security groups em cada região")
 
 # --------Ohio------------
 scName_ohio = 'matheus-security-group'
@@ -379,6 +399,7 @@ scId_nv = security_group_nv['GroupId']
 #-------------------------------------------------------------------------------------------------------
 # Configurando regras de entrada para cada security group
 print('Configurando regras de entrada para cada security group\n')
+logging.info("Configurando regras de entrada para cada security group")
 
 ec2_client_ohio.authorize_security_group_ingress(
     GroupId=scId_ohio,
@@ -417,6 +438,7 @@ ec2_client_north_virginia.authorize_security_group_ingress(
 #-------------------------------------------------------------------------------------------------------
 # Criando instância Postgres de Ohio
 print('Criando instância Postgres de Ohio\n')
+logging.info("Criando instância Postgres de Ohio")
 
 USERDATA_OHIO = '''#!/bin/bash
 cd /
@@ -461,6 +483,7 @@ instances = ec2_client_ohio.run_instances(
 instanceId_ohio = instances['Instances'][0]['InstanceId']
 
 print("ID da instância Ohio: ", instanceId_ohio, "\n")
+logging.info("ID da instância Ohio: ", instanceId_ohio)
 
 ec2_client_ohio.create_tags(Resources=[instanceId_ohio], Tags=[{'Key':'Name', 'Value':'Mat-PSQL-Ohio'}])
 
@@ -478,6 +501,7 @@ responseInst_ohio = ec2_client_ohio.describe_instances(
 #-------------------------------------------------------------------------------------------------------
 # Pegando IP Público da instância Postgres de Ohio
 print('Pegando IP Público da instância Postgres de Ohio\n')
+logging.info("Pegando IP Público da instância Postgres de Ohio")
 
 waiter_IP = ec2_client_ohio.get_waiter('instance_running')
 
@@ -523,6 +547,8 @@ instance_ohio_IPaddress = responseInst_ohio['Reservations'][0]['Instances'][0]['
 #-------------------------------------------------------------------------------------------------------
 # Criando instância Django de North Virginia
 print('Criando instância Django de North Virginia\n')
+logging.info("Criando instância Django de North Virginia")
+
 
 USERDATA_NORTH_VIRGINIA = f'''#!/bin/bash
 cd /
@@ -565,6 +591,7 @@ instances = ec2_client_north_virginia.run_instances(
 instanceId_nv = instances['Instances'][0]['InstanceId']
 
 print("ID da instância NV: ", instanceId_nv, "\n")
+logging.info("ID da instância NV: ", instanceId_nv)
 
 ec2_client_north_virginia.create_tags(Resources=[instanceId_nv], Tags=[{'Key':'Name', 'Value':'Mat-DJANGO-NV'}])
 
@@ -582,6 +609,7 @@ responseInst_nv = ec2_client_north_virginia.describe_instances(
 #-------------------------------------------------------------------------------------------------------
 # Esperando a instância Django de NV rodar
 print('Esperando a instância Django de NV rodar\n')
+logging.info("Esperando a instância Django de NV rodar")
 
 waiter_NV = ec2_client_north_virginia.get_waiter('instance_running')
 
@@ -628,6 +656,7 @@ if im_response['Images']:
 #-------------------------------------------------------------------------------------------------------
 # Criando imagem da instância Django de NV
 print('Criando imagem da instância Django de NV\n')
+logging.info("Criando imagem da instância Django de NV")
 
 image_NV = ec2_client_north_virginia.create_image(InstanceId=instanceId_nv, Name=AMI_Name)
 image_NV_Id = image_NV["ImageId"]
@@ -645,12 +674,14 @@ waiter_AMI.wait(
 #-------------------------------------------------------------------------------------------------------
 # Deletando instância Django de NV
 print('Deletando instância Django de NV\n')
+logging.info("Deletando instância Django de NV")
 
 ec2_client_north_virginia.terminate_instances(InstanceIds=[instanceId_nv])
 
 #-------------------------------------------------------------------------------------------------------
 # Criando o Loadbalancer
 print('Criando o loadbalancer\n')
+logging.info("Criando o loadbalancer")
 
 
 subnets = []
@@ -669,6 +700,8 @@ LB_Arn = LB_create_response['LoadBalancers'][0]['LoadBalancerArn']
 #-------------------------------------------------------------------------------------------------------
 # Criando o Target Group
 print('Criando o target group\n')
+logging.info("Criando o target group")
+
 
 TG_create_response = ec2_client_north_virginia_LB.create_target_group(Name=target_grp_name,
                                                         Protocol='HTTP',
@@ -680,6 +713,7 @@ TG_Arn = TG_create_response['TargetGroups'][0]['TargetGroupArn']
 #-------------------------------------------------------------------------------------------------------
 # Criando listener (depende do LOADBALANCER)
 print('Criando listener no loadbalancer\n')
+logging.info("Criando listener no loadbalancer")
 
 listener_response = ec2_client_north_virginia_LB.create_listener(LoadBalancerArn=LB_Arn,
                                                           Protocol='HTTP', Port=80,
@@ -690,22 +724,26 @@ listener_response = ec2_client_north_virginia_LB.create_listener(LoadBalancerArn
 #-------------------------------------------------------------------------------------------------------
 # Formatando string do Resource
 print('Formatando string do Resource\n')
+logging.info("Formatando string do Resource")
 
 arn_loadbalancer = 'a' + LB_Arn.split('/a')[1]
 
 print(f"arn_loadbalancer: {arn_loadbalancer}", '\n')
+logging.info(f"arn_loadbalancer: {arn_loadbalancer}")
 
 tgId = TG_create_response['TargetGroups'][0]['TargetGroupArn']
 arn_targetgroup = 't' + tgId.split(':t')[1]
 print(f"arn_targetgroup: {arn_targetgroup}", '\n')
+logging.info(f"arn_targetgroup: {arn_targetgroup}")
 
 ResourceLabelString = arn_loadbalancer + '/' + arn_targetgroup
 print(f"Resource Label String: {ResourceLabelString}", '\n')
-
+logging.info(f"Resource Label String: {ResourceLabelString}")
 
 #-------------------------------------------------------------------------------------------------------
 # Criando Launch Configuration
 print('Criando Launch Configuration\n')
+logging.info('Criando Launch Configuration')
 
 
 LC_response = ec2_client_north_virginia_AS.create_launch_configuration(
@@ -720,6 +758,7 @@ LC_response = ec2_client_north_virginia_AS.create_launch_configuration(
 #-------------------------------------------------------------------------------------------------------
 # Criando Autoscaling Group
 print('Criando Autoscaling Group\n')
+logging.info('Criando Autoscaling Group')
 
 autosgName = 'AutoSG-Mat-NV'
 
@@ -740,6 +779,7 @@ AS_response = ec2_client_north_virginia_AS.create_auto_scaling_group(
 )
 
 print('Criando Scaling Policy\n')
+logging.info('Criando Scaling Policy')
 SP_response = ec2_client_north_virginia_AS.put_scaling_policy(
     AutoScalingGroupName=autosgName,
     PolicyName='alb1000-target-tracking-scaling-policy',
