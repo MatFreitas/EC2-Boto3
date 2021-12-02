@@ -1,6 +1,7 @@
 import boto3
 import os
 from dotenv import load_dotenv
+import time
 
 load_dotenv()
 
@@ -112,16 +113,28 @@ try:
 
     for inst in desc_inst['AutoScalingInstances']:
         id_inst = inst['InstanceId']
-        
+
         ec2_client_north_virginia.terminate_instances(InstanceIds=[id_inst])
 
         print('Terminando instâncias criadas pelo Autoscaling\n')
-        
 
-    ec2_client_north_virginia_AS.delete_auto_scaling_group(
-        AutoScalingGroupName=autosgName,
-        ForceDelete=True
-    )
+        waiter_AS_Instance.wait(
+            Filters=[
+                {
+                    'Name': 'instance-id',
+                    'Values': [
+                        id_inst,
+                    ]
+                },
+            ]
+        )
+
+
+        ec2_client_north_virginia_AS.delete_auto_scaling_group(
+            AutoScalingGroupName=autosgName,
+            ForceDelete=True
+        )
+
 except:
     print('Autoscaling não existe\n')
     
@@ -297,6 +310,8 @@ if response['LaunchConfigurations']:
     ec2_client_north_virginia_AS.delete_launch_configuration(
         LaunchConfigurationName=lcName,
     )
+
+time.sleep(40)
 
 #-------------------------------------------------------------------------------------------------------
 # Criação dos security groups
